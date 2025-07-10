@@ -3,6 +3,7 @@ from repository.database import db
 from db_models.payment import Payment
 from datetime import datetime, timedelta
 from payments.pix import Pix
+from flask_socketio import SocketIO
 
 app = Flask(__name__)
 
@@ -10,6 +11,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SECRET_KEY'] = 'SECRET_KEY_SOCKET'
 
 db.init_app(app)
+socketIo = SocketIO(app)
 
 @app.route('/payments/pix', methods=['POST'])
 def create_payment_pix():
@@ -44,8 +46,14 @@ def confirmation_pix():
 
 @app.route('/payments/pix/<int:payment_id>', methods=['GET'])
 def payment_pix_page(payment_id):
-    return render_template('payment.html')
+    payment = Payment.query.get(payment_id)
+
+    return render_template('payment.html', payment_id=payment.id, value=payment.value, host="http://127.0.0.1:5000", qr_code=payment.qr_code)
+
+@socketIo.on('connect')
+def hand_connect():
+    print("Client connected to the server")
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketIo.run(app, debug=True)
 
