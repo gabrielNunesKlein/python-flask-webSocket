@@ -57,7 +57,7 @@ def confirmation_pix():
     
     payment.paid = True
     db.session.commit()
-
+    socketIo.emit(f'payment-confirmed-{payment.id}')
     return jsonify({"message": "The payment has been confirmed"})
 
 
@@ -65,11 +65,22 @@ def confirmation_pix():
 def payment_pix_page(payment_id):
     payment = Payment.query.get(payment_id)
 
+    if not payment:
+        return render_template('404.html')
+
+    if payment.paid:
+        return render_template('confirmed_payment.html', payment_id=payment.id, value=payment.value)
+
     return render_template('payment.html', payment_id=payment.id, value=payment.value, host="http://127.0.0.1:5000", qr_code=payment.qr_code)
 
 @socketIo.on('connect')
 def hand_connect():
     print("Client connected to the server")
+
+
+@socketIo.on('connect')
+def handle_disconnect():
+    print("Client has disconnected to the server")
 
 if __name__ == '__main__':
     socketIo.run(app, debug=True)
